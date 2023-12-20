@@ -1,0 +1,7 @@
+Flask
+Flask-Caching
+requests
+datetime
+Flask-SQLAlchemy
+# gunicorn
+flask_apscheduler

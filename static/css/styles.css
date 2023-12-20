@@ -1,0 +1,256 @@
+@keyframes attentionGrabbing {
+    0% {
+        background-color: rgba(128, 0, 0, 0.5); /* dark red */
+        border-color: rgba(192, 0, 0, 1); /* dark red border */
+    }
+    50% {
+        background-color: rgba(255, 0, 0, 0.5); /* red */
+        border-color: rgba(255, 0, 0, 1); /* red border */
+    }
+    100% {
+        background-color: rgba(128, 0, 0, 0.5); /* dark red */
+        border-color: rgba(192, 0, 0, 1); /* dark red border */
+    }
+}
+  
+.attention-grabbing {
+    animation: attentionGrabbing 4s infinite ease-in-out;  /* Changed duration to 3s and added easing */
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #14151b;  /* Dark slate blue background */
+    color: #ffffff;  /* White text */
+    margin: 0;
+    padding: 0;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+body::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+/* Hide scrollbar for Firefox */
+body {
+    scrollbar-width: none;
+}
+
+/* Hide scrollbar for IE 10+ */
+body {
+    -ms-overflow-style: none;
+}
+
+.container {
+    max-width: 1300px;
+    margin: auto;
+    padding: 20px;
+}
+
+.header {
+    margin-bottom: 50px;
+    border-bottom: 2px solid #47597E;  /* Slate blue border */
+}
+
+.header h1 {
+    color: #7289DA;  /* Lighter slate blue for header */
+}
+
+.important-metrics {
+    display: flex;
+    justify-content: space-around;
+    font-size: 2em;
+    text-align: center;
+    margin-bottom: 20px;
+    border: 2px solid #47597E;  /* Slate blue border */
+    border-radius: 10px;
+    padding: 20px;
+    flex-wrap: wrap; /* Allow flex items to wrap */
+}
+
+.important-metrics-left,
+.important-metrics-right {
+    flex: 1; /* Take up equal width */
+    display: flex;
+    justify-content: space-around;
+}
+
+.important-metrics-divider {
+    width: 2px; /* Width of the divider */
+    background-color: #47597E; /* Same color as the border of important-metrics */
+    margin: 0 20px; /* Vertical margin */
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.card, .chart-card {
+    backdrop-filter: blur(10px);
+    background: rgba(71, 89, 126, 0.1);  /* Semi-transparent slate blue background */
+    border: 2px solid rgba(71, 89, 126, 0.6);  /* Slate blue border */
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+}
+
+.card p {
+    color: #ffffff;  /* White text */
+    font-size: 2.2em;
+    margin: .1em;
+}
+
+.card h3 {
+    color: #ffffff;  /* White text */
+    margin: .1em;
+}
+
+.chart-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 30px;  /* Added for spacing between charts */
+}
+
+.chart-card > div {
+    flex-grow: 1;
+    box-sizing: border-box;
+}
+
+.charts {
+    margin-top: 5rem;
+}
+
+.important-metrics-card {
+    backdrop-filter: blur(10px);
+    background: rgba(71, 89, 126, 0.2);  /* Semi-transparent slate blue background */
+    border-radius: 10px;
+    margin-right: 10px;
+    margin-left: 10px;
+    border: 2px solid #47597E;  /* Slate blue border */
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    flex-grow: 1;  /* new */
+}
+
+.important-label {
+    text-align: center;
+    font-size: 1em;
+    margin-bottom: 0em;
+    color: #ffffff !important;  /* White text */
+}
+
+.important-value {
+    text-align: center;
+    margin: 0em;
+    font-size: 2em;
+    color: #ffffff !important;  /* White text */
+    white-space: nowrap;  /* Keep text on one line */
+    overflow: hidden;  /* Hide overflow */
+    text-overflow: ellipsis;  /* Add ellipsis for overflow */
+    z-index: 3 !important;
+}
+
+.data-age-box {
+    position: absolute;
+    color: #cecece;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(36, 77, 116, 0.089); /* semi-transparent background */
+    padding: 5px 15px;
+    border-radius: 5px;
+    z-index: 1000; /* make sure it's on top of other elements */
+}
+
+.dino-image {
+    position: absolute;
+    bottom: 0; /* Align the bottom edge of the image with the bottom edge of the card */
+    left: 50%; /* Center the image horizontally relative to the card */
+    transform: translateX(-50%) scale(0.5); /* Adjust the horizontal position to truly center the image */
+    max-width: 100%; /* Ensure the image doesn't overflow the card */
+    height: auto; /* Maintain the aspect ratio of the image */
+}
+
+/* Mobile specific styles */
+@media (max-width: 1280px) {
+    .header {
+        margin-bottom: 10px;
+        border-bottom: 2px solid #47597E;  /* Slate blue border */
+    }
+    .container {
+        padding: 10px;
+    }
+  
+    .important-metrics {
+        flex-direction: column;  /* Change the main axis to vertical */
+        margin: 0;
+        margin-bottom: 10px;
+        padding: 0;
+    }
+
+    .important-metrics-left, .important-metrics-right {
+        flex: 1;  /* Let each row take up equal height */
+        flex-direction: row;  /* Make sure the cards are in a row format */
+    }
+
+    .important-metrics-card {
+        /* existing styles */
+        flex: 1;  /* Let each card take up equal space */
+        margin: 5px;  /* Add some margin around each card */
+        padding: 10px;  /* Add some padding inside each card */
+        max-height: 92px; /* Or whatever maximum height you want */
+    }
+
+    .important-metrics-divider {
+        display: none; /* Hide the divider on mobile */
+    }
+    
+    .important-label {
+        margin: 0;
+        /* font-size: 0.8em; */
+        margin: 0;  /* Explicitly set margin to zero */
+        padding: 0;  /* Explicitly set padding to zero */
+        line-height: 1.2;  /* Adjust line height */
+        box-sizing: border-box;  /* Include padding and border in element's total width and height */
+        font-size: calc(0.6em + 1.5vw);  /* Smaller base size plus more aggressive scaling */
+    }
+
+    .important-value {
+        /* font-size: 1.2em; */
+        margin: 0;  /* Explicitly set margin to zero */
+        padding: 0;  /* Explicitly set padding to zero */
+        line-height: 1.2;  /* Adjust line height */
+        box-sizing: border-box;  /* Include padding and border in element's total width and height */
+        font-size: calc(1em + 1.5vw);  /* Smaller base size plus more aggressive scaling */
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .card, .chart-card {
+        padding: 10px;
+    }
+
+    .card p {
+        font-size: 1.5em;
+    }
+
+    .card h3 {
+        font-size: 1.2em;
+    }
+
+    .charts {
+        margin-top: 2rem;
+    }
+
+    .data-age-box {
+        top: 5px;
+        right: 5px;
+        padding: 3px 10px;
+    }
+}
