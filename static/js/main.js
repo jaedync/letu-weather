@@ -3,15 +3,27 @@ let currentDataInterval, historicDataInterval;
 let barometerChart, humidityChart, temperatureChart, wetBulbChart, windSpeedChart, windDirChart;
 // Global variables to keep track of chart instances
 const chartInstances = {};
-let lastFetchedTS = 0;  // This will hold the last fetched 'ts' value
+let lastFetchedTS = 0;  // This will hold the last fetched current 'ts' value
 
 // Helper function to create a single card
-function createCard(title, value) {
+function createCard(title, value, isWindDirection = false, rotationDegree = 0) {
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = `
+    let contentHTML = `
         <h3>${title}</h3>
         <p>${value}</p>`;
+
+    if (isWindDirection) {
+        // Include the rotation directly in the style attribute
+        contentHTML = `
+            <h3>${title}</h3>
+            <div class="wind-direction-content">
+                <p>${value}</p>
+                <img class="compass-icon" src="/static/pointer.svg" alt="Compass" style="transform: rotate(${rotationDegree}deg);" />
+            </div>`;
+    }
+    
+    card.innerHTML = contentHTML;
     return card;
 }
 
@@ -29,16 +41,15 @@ function updateTimeSinceLastUpdate(lastSeenUnixTime) {
     document.getElementById('data-age').textContent = `Data Age: ${ageMinutes}m ${ageSeconds}s`;
 }
 
-
 // Render the current data section
 async function renderCurrentData() {
     console.log("Fetching current data...");
     const data = await fetchData('/current');
-    // console.log("Current data:", JSON.stringify(data, null, 2));  // Log the entire data to console
     const sensor1Data = data.data[0];
-    lastFetchedTS = sensor1Data.ts;  // Set the global variable here
+    const sensor2Data = data.data[1];
+    lastFetchedTS = sensor1Data.ts;
     updateImportantMetrics(sensor1Data);
-    updateOtherMetrics(sensor1Data);
+    updateOtherMetrics(sensor1Data, sensor2Data);
 }
 
 // Map temperature to a color
@@ -124,13 +135,6 @@ function getBackgroundColorForMetric(label, value) {
     return { color, borderColor };
 }
 
-// function addDinoImageToCard(metricElement) {
-//     const dinoImg = document.createElement('img');
-//     dinoImg.src = "https://cdn.discordapp.com/attachments/1099561426059800626/1168592018121961623/IMG_0275.gif?ex=655b8da0&is=654918a0&hm=802119c9b085a3298419099c58559750d7105561ef26e7be2fff93a522c6fcbd";
-//     dinoImg.className = 'dino-image';
-//     metricElement.appendChild(dinoImg);
-// }
-
 function updateImportantMetrics(sensorData) {
     const importantMetricsDiv = document.querySelector('.important-metrics');
     importantMetricsDiv.innerHTML = ''; // Clear any existing content
@@ -171,11 +175,6 @@ function updateImportantMetrics(sensorData) {
         } else {
         metricElement.classList.remove('attention-grabbing');
         }
-        
-        // if ((label === 'Wind Speed' || label === 'Wind Gusts') && parseFloat(value) === 0) {
-        //     addDinoImageToCard(metricElement);
-        // }
-    
 
         // Append to the left or right div based on the metric label
         if (label === 'Temperature' || label === 'Humidity') {
@@ -190,39 +189,155 @@ function updateImportantMetrics(sensorData) {
     importantMetricsDiv.appendChild(importantMetricsRightDiv);
 }
 
-function unixToHumanReadable(unixTimestamp) {
-    const date = new Date(unixTimestamp * 1000);
-    return date.toLocaleString();  // Convert to local date string
+// Function to calculate the start time from the current timestamp and uptime, then format it
+function calculateStartTime(currentTimestamp, uptimeSeconds) {
+    const startTime = currentTimestamp - uptimeSeconds;
+    return unixToHumanReadable(startTime);
 }
 
-function updateOtherMetrics(sensorData) {
+// Function to convert Unix timestamp to human-readable format
+function unixToHumanReadable(unixTimestamp) {
+    const date = new Date(unixTimestamp * 1000);
+    const aWeekAgo = new Date();
+    aWeekAgo.setDate(aWeekAgo.getDate() - 7); // Set to 7 days ago
+
+    // Check if the given date is more than a week old
+    if (date < aWeekAgo) {
+        // If more than a week old, return only the date part
+        return date.toLocaleDateString();
+    } else {
+        // If within the last week, return the full date and time
+        return date.toLocaleString();
+    }
+}
+
+function getPreciseCardinalDirection(degree) {
+    // Normalize the degree to be within 0-359
+    degree = degree % 360;
+    if (degree < 0) {
+        degree += 360; // Handle negative degrees
+    }
+
+    const directions = [
+        'N', 'NNE', 'NE', 'ENE', 
+        'E', 'ESE', 'SE', 'SSE',
+        'S', 'SSW', 'SW', 'WSW', 
+        'W', 'WNW', 'NW', 'NNW'
+    ];
+
+    const index = Math.round(degree / 22.5) % 16;
+    return directions[index];
+}
+
+function updateOtherMetrics(sensorData, auxiliaryData) {
     const currentDataDiv = document.getElementById('current-data');
     const fragment = document.createDocumentFragment();
-    const metrics = ['bar_absolute', 'dew_point', 'solar_rad', 'uv_index', 'thw_index', 'wind_chill', 'heat_index', 'wind_dir_scalar_avg_last_10_min', 'rainfall_year_in', 'rainfall_monthly_in', 'rainfall_last_24_hr_in', 'rainfall_last_60_min_in', 'wet_bulb', 'rain_storm_last_in'];
+    const ts = auxiliaryData.ts;
+    
+    // sensor metrics
+    const metrics = ['bar_absolute', 'uv_index', 'solar_rad', 'dew_point', 'wind_chill', 'heat_index', 'thw_index'];
+    const aestheticLabels = ['Barometric Pressure', 'UV Index', 'Solar Radiation', 'Dew Point', 'Wind Chill', 'Heat Index', 'THW Index'];
+    const units = ['inHg', '', 'W/m²', '°F', '°F', '°F', '°F'];
 
-    // Loop over each metric to create a card
-    metrics.forEach(metric => {
-        fragment.appendChild(createCard(metric.replace(/_/g, ' ').toUpperCase(), sensorData[metric]));
+    // auxiliary metrics
+    const auxiliaryMetrics = ['input_voltage', 'wifi_rssi', 'link_uptime', 'uptime'];
+    const auxiliaryLabels = ['Input Voltage', 'Uplink WiFi RSSI', 'Last Uplink Boot', 'Last Station Boot'];
+    const auxiliaryUnits = ['V', 'dBm', '', ''];
+
+    // Combine both sets of metrics
+    const combinedMetrics = metrics.concat(auxiliaryMetrics);
+    const combinedLabels = aestheticLabels.concat(auxiliaryLabels);
+    const combinedUnits = units.concat(auxiliaryUnits);
+
+    combinedMetrics.forEach((metric, index) => {
+        let value;
+        // Extract the value from the appropriate data source
+        if (metrics.includes(metric)) {
+            value = sensorData[metric];
+        } else {
+            value = auxiliaryData[metric];
+        }
+
+        if (metric === 'input_voltage') {
+            value = (value / 1000).toFixed(2); // Divides by 1000 for input voltage
+        } else if (metric === 'link_uptime' || metric === 'uptime') {
+            value = calculateStartTime(ts, value); // Calculates start time and formats it
+        }
+
+        const valueWithUnit = value + (combinedUnits[index] ? ` ${combinedUnits[index]}` : '');
+        fragment.appendChild(createCard(combinedLabels[index], valueWithUnit));
     });
 
-    // Add the rainstorm start and end times
-    fragment.appendChild(createCard('Rainstorm Last Start', unixToHumanReadable(sensorData['rain_storm_last_start_at'])));
-    fragment.appendChild(createCard('Rainstorm Last End', unixToHumanReadable(sensorData['rain_storm_last_end_at'])));
+    // Get the rotation degree for the compass
+    const rotationDegree = sensorData.wind_dir_scalar_avg_last_10_min;
     
+    // Create or update the wind direction card with rotation
+    const cardinalDirection = getPreciseCardinalDirection(rotationDegree);
+    const windDirectionValue = `${cardinalDirection} (${rotationDegree}°)`;
+    const windDirectionCard = createCard('Wind Direction', windDirectionValue, true, rotationDegree);
+
     // Update the DOM
     currentDataDiv.innerHTML = '';
+    currentDataDiv.appendChild(windDirectionCard);
     currentDataDiv.appendChild(fragment);
+}
+
+function createChartContainers(chartSpecs) {
+    const chartsContainer = document.getElementById('charts-container');
+    chartsContainer.innerHTML = ''; // Clear existing chart containers
+
+    Object.keys(chartSpecs).forEach(chartName => {
+        const chartCardDiv = document.createElement('div');
+        chartCardDiv.className = 'chart-card';
+
+        const chartDiv = document.createElement('div');
+        chartDiv.id = `historic-chart-${chartName}`;
+
+        chartCardDiv.appendChild(chartDiv);
+        chartsContainer.appendChild(chartCardDiv);
+    });
+}
+
+const chartSpecs = {
+    // 'all': ['wind_speed_avg', 'wind_speed_hi', 'temp_avg', 'hum_hi', 'bar_absolute', 'dew_point_hi', 'wet_bulb_hi', 'uv_index_avg'],
+    'temperature': ['temp_avg', 'temp_hi', 'temp_lo'],
+    'humidity': ['hum_hi', 'hum_lo'],
+    'wind-speed': ['wind_speed_avg', 'wind_speed_hi'],
+    'wind-angle': ['wind_speed_hi_dir', 'wind_dir_of_prevail'],
+    'barometer': ['bar_absolute', 'bar_hi', 'bar_lo', 'bar_sea_level'],
+    'solar': ['solar_rad_avg', 'solar_rad_hi'],
+
+    'dew-point': ['dew_point_hi', 'dew_point_last', 'dew_point_lo'],
+    'wet-bulb': ['wet_bulb_hi', 'wet_bulb_last', 'wet_bulb_lo'],
+    'uv-index': ['uv_index_avg', 'uv_index_hi'],
+    'battery-voltage': ['battery_voltage'],
+    'input-voltage': ['input_voltage'],
+    'signals-strengths': ['wifi_rssi', 'rssi'],
+    'packet-loss-percentage': ['error_packets'],
+    // Add other chart specs here as needed
+};
+
+function showLoader() {
+    const loaderWrapper = document.querySelector('.loader-wrapper');
+    loaderWrapper.style.display = 'flex'; // Show loader wrapper with flexbox
+}
+
+function hideLoader() {
+    const loaderWrapper = document.querySelector('.loader-wrapper');
+    loaderWrapper.style.display = 'none'; // Hide loader wrapper
 }
 
 // Render the historic charts
 async function renderHistoricCharts() {
     console.log("Fetching historic data...");
-    const currentTime = Math.floor(Date.now() / 1000);
-    const twentyFourHoursAgo = currentTime - 7 * 24 * 60 * 60;
-    // const data = await fetchData(`/historic?start-timestamp=${twentyFourHoursAgo}&end-timestamp=${currentTime}`);
+    showLoader();
     const data = await fetchData(`/historic`);
-    // console.log("Historic data:", JSON.stringify(data, null, 2));  // Log the entire data to console
-    const sensorData = data.data;  // Note the change here, data is now under the "data" key
+    const sensorData = data.data;
+    hideLoader();
+
+    // Create chart containers dynamically
+    createChartContainers(chartSpecs);
+
     updateCharts(sensorData);
 }
 
@@ -233,22 +348,6 @@ async function updateCharts(sensorData) {
     // const data = await fetchData(`/historic?start-timestamp=${twentyFourHoursAgo}&end-timestamp=${currentTime}`);
     const data = await fetchData(`/historic`);
     sensorData = data.data;
-    const chartSpecs = {
-        'all': ['wind_speed_avg', 'wind_speed_hi', 'temp_avg', 'hum_hi', 'bar_absolute', 'dew_point_hi', 'wet_bulb_hi', 'uv_index_avg'],
-        'wind-speed': ['wind_speed_avg', 'wind_speed_hi'],
-        'temperature': ['temp_avg', 'temp_hi', 'temp_lo'],
-        'humidity': ['hum_hi', 'hum_lo'],
-        'barometer': ['bar_absolute', 'bar_hi', 'bar_lo', 'bar_sea_level'],
-        'solar': ['solar_rad_avg', 'solar_rad_hi'],
-        'wind-angle': ['wind_speed_hi_dir', 'wind_dir_of_prevail'],
-
-        'dew-point': ['dew_point_hi', 'dew_point_last', 'dew_point_lo'],
-        'wet-bulb': ['wet_bulb_hi', 'wet_bulb_last', 'wet_bulb_lo'],
-        'uv-index': ['uv_index_avg', 'uv_index_hi'],
-        'signals-strengths': ['wifi_rssi', 'rssi'],
-        'packet-loss': ['error_packets'],
-        // Add other chart specs here as needed
-    };
 
     // Prepare data for percent packet loss
     const expectedPacketsPer15Min = (15 * 60) / 2.5;
@@ -262,7 +361,6 @@ async function updateCharts(sensorData) {
         const chartElementId = `historic-chart-${chartName}`;
 
         // Generate the traces for Plotly
-        
         let traces;
         if (chartName === 'packet-loss') {
             traces = [{
@@ -271,13 +369,44 @@ async function updateCharts(sensorData) {
                 mode: 'lines',
                 name: 'Packet Loss (%)',
             }];
+        } else if (chartName === 'wind-angle') {
+            // Handle wind direction separately due to wrap-around
+            traces = metrics.map(metric => {
+                const adjustedData = sensorData.map((entry, index, array) => {
+                    // If the difference between this and the last entry is more than 180,
+                    // insert a null to break the line
+                    if (index > 0 && Math.abs(entry[metric] - array[index - 1][metric]) > 180) {
+                        return null;
+                    }
+                    return entry[metric];
+                });
+
+                return {
+                    x: sensorData.map(entry => new Date(entry.ts * 1000)),
+                    y: adjustedData,
+                    mode: 'lines', // Optional: add markers for clarity
+                    name: metric.replace('_', ' ').toUpperCase(),
+                    connectgaps: false, // Prevent connecting the gaps with lines
+                };
+            });
         } else {
-        traces = metrics.map(metric => ({
-            x: sensorData.map(entry => new Date(entry.ts * 1000)),
-            y: sensorData.map(entry => entry[metric]),
-            mode: 'lines',
-            name: metric.replace('_', ' ').toUpperCase(),
-        }));
+            traces = metrics.map(metric => {
+                let transformedData;
+                if (metric === 'battery_voltage') {
+                    transformedData = sensorData.map(entry => entry[metric] / 10);
+                } else if (metric === 'input_voltage') {
+                    transformedData = sensorData.map(entry => entry[metric] / 1000);
+                } else {
+                    transformedData = sensorData.map(entry => entry[metric]);
+                }
+
+                return {
+                    x: sensorData.map(entry => new Date(entry.ts * 1000)),
+                    y: transformedData,
+                    mode: 'lines',
+                    name: metric.replace('_', ' ').toUpperCase(),
+                };
+            });
         }
 
         // Layout settings
@@ -288,12 +417,12 @@ async function updateCharts(sensorData) {
             xaxis: { gridcolor: '#888' },
             yaxis: { gridcolor: '#888' },
             showlegend: false,
-            title: chartName.replace('-', ' ').toUpperCase(),
+            title: formatChartTitle(chartName),
             margin: {
                 l: 30, // left margin
                 r: 30, // right margin
                 b: 45, // bottom margin
-                t: 75  // top margin
+                t: 55  // top margin
             },
             responsive: true
         };
@@ -312,27 +441,13 @@ async function updateCharts(sensorData) {
     }
 }
 
-// Initialize
-// window.addEventListener('load', () => {
-//     // Clear existing intervals
-//     clearInterval(currentDataInterval);
-//     clearInterval(historicDataInterval);
-
-//     // Initial render
-//     renderCurrentData();
-//     renderHistoricCharts();
-
-//     // Update current data every minute
-//     currentDataInterval = setInterval(renderCurrentData, 60000);
-    
-//     // Update "Data Age" every second based on the lastFetchedTS value
-//     setInterval(() => {
-//         updateTimeSinceLastUpdate(lastFetchedTS);
-//     }, 1000);
-
-//     // Update historic data every ten minutes
-//     historicDataInterval = setInterval(renderHistoricCharts, 600000);
-// });
+// Function to format chart titles into Title Case
+function formatChartTitle(chartName) {
+    return chartName
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
 
 window.addEventListener('load', () => {
     // Clear existing intervals
