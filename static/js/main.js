@@ -5,6 +5,97 @@ let barometerChart, humidityChart, temperatureChart, wetBulbChart, windSpeedChar
 const chartInstances = {};
 let lastFetchedTS = 0;  // This will hold the last fetched current 'ts' value
 
+function replaceTextInDOM(node, searchText, replaceText) {
+    if (node.nodeType === Node.TEXT_NODE) {
+        if (node.nodeValue.includes(searchText)) {
+            node.nodeValue = node.nodeValue.replace(new RegExp(searchText, 'g'), replaceText);
+        }
+    } else {
+        for (let child of node.childNodes) {
+            replaceTextInDOM(child, searchText, replaceText);
+        }
+    }
+}
+window.onload = () => {
+    const hostName = window.location.hostname;
+    replaceTextInDOM(document.body, 'example.com', hostName);
+};
+
+document.getElementById('infoButton').onclick = function() {
+    document.getElementById('infoModal').style.display = 'block';
+}
+
+document.querySelector('.close-button').onclick = function() {
+    document.getElementById('infoModal').style.display = 'none';
+}
+
+// Optionally, to close the modal when clicking outside of it
+window.onclick = function(event) {
+    let modal = document.getElementById('infoModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+        document.querySelector('.container').classList.remove('active'); // Remove blur effect
+    }
+}
+
+let infoButtonTimer;
+
+function resetInfoButtonTimer() {
+    clearTimeout(infoButtonTimer); // Clear existing timer
+    document.getElementById('infoButton').style.opacity = '1'; // Make button fully visible
+    infoButtonTimer = setTimeout(() => {
+        document.getElementById('infoButton').style.opacity = '0'; // Fade out the button
+    }, 5000); // Time in milliseconds before the button fades out
+}
+
+// Initialize the timer when the page loads
+resetInfoButtonTimer();
+
+// Restart the timer whenever the user interacts with the button
+document.getElementById('infoButton').addEventListener('click', () => {
+    resetInfoButtonTimer();
+    // Add any additional logic for when the button is clicked
+});
+
+// Optionally, reset the timer when the user moves the mouse within the container
+document.querySelector('.container').addEventListener('mousemove', () => {
+    resetInfoButtonTimer();
+});
+
+// This function formats and displays the API schema in the modal.
+function displayApiSchemaExample(currentData) {
+    const apiSchemaElement = document.getElementById('api-schema-example');
+    const hostName = window.location.hostname;
+    const exampleData = JSON.stringify(currentData, null, 2); // Pretty-print the current data
+
+    const apiSchemaTemplate = `GET /current
+Host: ${hostName}
+
+Response:
+${exampleData}`;
+
+    // Use innerText instead of textContent to preserve formatting
+    apiSchemaElement.innerText = apiSchemaTemplate;
+}
+
+function displayHistoricApiSchema(dataToShow) {
+    const apiSchemaElement = document.getElementById('api-schema-example-historic');
+    const hostName = window.location.hostname;
+    const exampleData = JSON.stringify(dataToShow, null, 2); // Pretty-print the dataToShow
+
+    const apiSchemaTemplate = `GET /historic?start-timestamp=[start-timestamp]&end-timestamp=[end-timestamp]
+Host: ${hostName}
+Parameters:
+    start-timestamp (optional): The start time in UNIX timestamp format.
+                                Default is 7 days ago.
+    end-timestamp (optional): The end timestamp in UNIX timestamp format.
+                              Default is the current time.
+Response:
+${exampleData}`;
+
+    apiSchemaElement.innerText = apiSchemaTemplate;
+}
+
 // Helper function to create a single card
 function createCard(title, value, isWindDirection = false, rotationDegree = 0) {
     const card = document.createElement('div');
@@ -45,6 +136,7 @@ function updateTimeSinceLastUpdate(lastSeenUnixTime) {
 async function renderCurrentData() {
     console.log("Fetching current data...");
     const data = await fetchData('/current');
+    displayApiSchemaExample(data);
     const sensor1Data = data.data[0];
     const sensor2Data = data.data[1];
     lastFetchedTS = sensor1Data.ts;
@@ -258,7 +350,10 @@ function updateOtherMetrics(sensorData, auxiliaryData) {
             value = auxiliaryData[metric];
         }
 
-        if (metric === 'input_voltage') {
+        // Format value for UV index and Fahrenheit metrics
+        if (metric === 'uv_index' || metric === 'dew_point' || metric === 'wind_chill' || metric === 'heat_index' || metric === 'thw_index') {
+            value = parseFloat(value).toFixed(1); // Ensure one decimal place
+        } else if (metric === 'input_voltage') {
             value = (value / 1000).toFixed(2); // Divides by 1000 for input voltage
         } else if (metric === 'link_uptime' || metric === 'uptime') {
             value = calculateStartTime(ts, value); // Calculates start time and formats it
@@ -273,7 +368,7 @@ function updateOtherMetrics(sensorData, auxiliaryData) {
     
     // Create or update the wind direction card with rotation
     const cardinalDirection = getPreciseCardinalDirection(rotationDegree);
-    const windDirectionValue = `${cardinalDirection} (${rotationDegree}°)`;
+    const windDirectionValue = `${cardinalDirection} ${rotationDegree}°`;
     const windDirectionCard = createCard('Wind Direction', windDirectionValue, true, rotationDegree);
 
     // Update the DOM
@@ -334,6 +429,17 @@ async function renderHistoricCharts() {
     const data = await fetchData(`/historic`);
     const sensorData = data.data;
     hideLoader();
+
+    // Temporary object to display in the API schema
+    const tempHistoricDataExample = {
+        "data": [
+            sensorData[0], // Include the first index of the fetched data
+            { "note": "/* More entries follow, structured as the first index. */" }
+        ]
+    };
+
+    // Display the historic API schema with the temporary data
+    displayHistoricApiSchema(tempHistoricDataExample);
 
     // Create chart containers dynamically
     createChartContainers(chartSpecs);
@@ -427,7 +533,6 @@ async function updateCharts(sensorData) {
             responsive: true
         };
         
-
         // Check if the chart instance already exists
         if (chartInstances[chartName]) {
             // Update the existing chart

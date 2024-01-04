@@ -12,17 +12,43 @@
         border-color: rgba(192, 0, 0, 1); /* dark red border */
     }
 }
+
+p {
+    line-height: 1.5;
+    letter-spacing: 0.5px;
+    margin-bottom: 1.5em;
+}
+
+@font-face {
+    font-family: 'Gotham Black';
+    src: url('/static/fonts/Gotham_Black.otf') format('opentype');
+}
+
+@font-face {
+    font-family: 'Gotham Book';
+    src: url('/static/fonts/Gotham_Book_Regular.otf') format('opentype');
+}
+
+@font-face {
+    font-family: 'Museo Slab';
+    src: url('/static/fonts/Museo_Slab_900.otf') format('opentype');
+}
   
 .attention-grabbing {
     animation: attentionGrabbing 4s infinite ease-in-out;  /* Changed duration to 3s and added easing */
 }
 
 body {
-    font-family: 'Arial', sans-serif;
-    background-color: #14151b;  /* Dark slate blue background */
-    color: #ffffff;  /* White text */
+    /* font-family: 'Arial', sans-serif; */
+    font-family: 'Gotham Book', 'Open Sans', sans-serif;
+    background-color: #0d0d0d;  /* Deeper black background */
+    color: #c0c0c0;  /* Softer white text */
     margin: 0;
     padding: 0;
+}
+
+h1, h2, h3 {
+    font-family: 'Gotham Black', 'Open Sans', sans-serif;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -48,38 +74,80 @@ body {
 }
 
 .header {
-    margin-bottom: 50px;
-    border-bottom: 2px solid #47597E;  /* Slate blue border */
+    display: flex; /* Use flexbox for layout */
+    justify-content: space-between; /* Space items between */
+    align-items: center; /* Align items vertically */
+    margin: 1rem 0rem 2rem 0rem;
+    border-bottom: 2px solid #a9b1ba;
+}
+
+.logo-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin: 5px 0px;
+}
+
+.header-logo {
+    height: auto;
+    padding: 0px 0px;
+}
+
+.logo-link {
+    height: 100%;
+    text-decoration: none; /* Remove underline */
+    display: flex;
+    align-items: center;
+    padding: 0px;
 }
 
 .header h1 {
-    color: #7289DA;  /* Lighter slate blue for header */
+    margin: 1rem 0.5rem;
+    color: #a9b1ba;  /* White text for important info */
 }
 
 .important-metrics {
     display: flex;
-    justify-content: space-around;
+    align-items: center;
+    justify-content: space-between; /* Changed to space-between to evenly distribute space */
     font-size: 2em;
     text-align: center;
-    margin-bottom: 20px;
-    border: 2px solid #47597E;  /* Slate blue border */
+    margin-bottom: 1.5rem;
+    border: 2px solid #2a2a2a;
     border-radius: 10px;
     padding: 20px;
-    flex-wrap: wrap; /* Allow flex items to wrap */
+    flex-wrap: wrap;
+}
+
+.important-metrics-card {
+    backdrop-filter: blur(10px);
+    background: rgba(71, 89, 126, 0.2);
+    border-radius: 10px;
+    margin: 10px; /* Adjusted margin for uniform spacing */
+    border: 2px solid #a9b1ba;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    flex: 1 0 auto; /* flex-grow, flex-shrink, flex-basis */
+    min-width: 0; /* Ensure cards can shrink below content size if needed */
+    box-sizing: border-box; /* Include padding and border in the width and height */
 }
 
 .important-metrics-left,
 .important-metrics-right {
-    flex: 1; /* Take up equal width */
     display: flex;
-    justify-content: space-around;
+    justify-content: center; /* Center the cards within these containers */
+    flex: 1; /* Allow these containers to take up half the space each */
+    min-width: 0; /* Ensure they can shrink below content size if needed */
 }
 
 .important-metrics-divider {
-    width: 2px; /* Width of the divider */
-    background-color: #47597E; /* Same color as the border of important-metrics */
-    margin: 0 20px; /* Vertical margin */
+    flex: 0 0 2px; /* Do not grow or shrink, set the basis to 2px */
+    background-color: #2a2a2a;
+    align-self: stretch; /* Stretch to the full height */
+    margin: 0 20px; /* Add margin on both sides */
 }
+
 
 .grid {
     display: grid;
@@ -89,21 +157,23 @@ body {
 
 .card, .chart-card {
     backdrop-filter: blur(10px);
-    background: rgba(71, 89, 126, 0.1);  /* Semi-transparent slate blue background */
-    border: 2px solid rgba(71, 89, 126, 0.6);  /* Slate blue border */
+    background: rgba(28, 30, 35, 0.95);  /* Darker card background */
+    border: 2px solid rgba(48, 50, 55, 0.6);  /* Subtle border */
     border-radius: 10px;
     padding: 15px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.5);
 }
 
 .card p {
-    color: #ffffff;  /* White text */
+    font-family: 'Gotham Black', 'Open Sans', sans-serif;
+    color: #ffffff;  /* White text for important info */
     font-size: 2.2em;
     margin: .1em;
 }
 
 .card h3 {
-    color: #ffffff;  /* White text */
+    font-family: 'Gotham Book', 'Open Sans', sans-serif;
+    color: #a9b1ba; /* Soft grey */
     margin: .1em;
 }
 
@@ -120,20 +190,7 @@ body {
 }
 
 .charts {
-    margin-top: 5rem;
-}
-
-.important-metrics-card {
-    backdrop-filter: blur(10px);
-    background: rgba(71, 89, 126, 0.2);  /* Semi-transparent slate blue background */
-    border-radius: 10px;
-    margin-right: 10px;
-    margin-left: 10px;
-    border: 2px solid #47597E;  /* Slate blue border */
-    padding: 20px;
-    text-align: center;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-    flex-grow: 1;  /* new */
+    margin-top: 3rem;
 }
 
 .important-label {
@@ -146,8 +203,9 @@ body {
 .important-value {
     text-align: center;
     margin: 0em;
+    font-family: 'Gotham Black', 'Open Sans', sans-serif;
     font-size: 2em;
-    color: #ffffff !important;  /* White text */
+    color: #ffffff !important;  /* Bright accent color */
     white-space: nowrap;  /* Keep text on one line */
     overflow: hidden;  /* Hide overflow */
     text-overflow: ellipsis;  /* Add ellipsis for overflow */
@@ -157,12 +215,121 @@ body {
 .data-age-box {
     position: absolute;
     color: #cecece;
-    top: 10px;
-    right: 10px;
+    z-index: 10 !important; /* Example value, ensure it is less than the .modal z-index */
+    top: 8px;
+    right: 8px;
     background-color: rgba(36, 77, 116, 0.089); /* semi-transparent background */
-    padding: 5px 15px;
+    padding: 2px 10px;
     border-radius: 5px;
     z-index: 1000; /* make sure it's on top of other elements */
+}
+
+.info-btn {
+    position: absolute;
+    top: 12px;
+    left: 24px;
+    background-color: rgba(28, 30, 35, 0.95); /* Modern look with no background */
+    color: lightgrey; /* Gentle light grey text */
+    border: none; /* No border for a clean appearance */
+    font-size: 24px; /* Adjust size as necessary */
+    padding: 0em 0.5em; /* Adjust padding as necessary */
+    cursor: pointer;
+    z-index: 100; /* Ensure it's above other elements */
+    opacity: 1; /* Fully visible initially */
+    transition: opacity 2s cubic-bezier(0, 0.1, 0, 1); /* Fade effect duration and style */
+    border-radius: 4px; /* Slightly rounded corners for a modern look */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Soft shadow for depth */
+}
+
+/* Hover state for the info button */
+.info-btn:hover {
+    background-color: rgba(28, 30, 35, 0.493); /* Modern look with no background */
+    color: white; /* Change color on hover for better visibility */
+    text-decoration: none; /* Remove any underline on hover */
+}
+
+/* Dark overlay with blur effect */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000 !important; /* Ensure this is higher than any other z-index values on the page */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    /* overflow: auto; */
+    background-color: rgba(0, 0, 0, 0.5); /* Dark background with opacity */
+    
+    /* Blur effect */
+    -webkit-backdrop-filter: blur(6px); /* For Safari */
+    backdrop-filter: blur(6px); /* Standard syntax */
+}
+
+.modal-content {
+    position: relative;
+    background-color: rgba(17, 17, 17, 0.97); /* Dark mode for modal content */
+    color: white; /* Light text */
+    margin: 2% auto 0px; /* Center the modal */
+    padding: 0px 20px;
+    border: 2px solid #aaa;
+    max-width: 800px; /* Adjust width as necessary */
+    height: 93%;
+    overflow-y: auto; /* Make content scrollable if it overflows vertically */
+    border-radius: 8px;
+
+    /* Hide scrollbar for WebKit browsers */
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Hide scrollbar for Firefox */
+    scrollbar-width: none;
+}
+
+.modal-header {
+    position: sticky;
+    top: 0;
+    background: transparent;
+    width: 100%;
+    height: 0px;
+    text-align: right;
+}
+
+/* Blur effect for the background when the modal is active */
+.modal.active {
+    backdrop-filter: blur(10px); /* Adjust the pixel value for the desired blur amount */
+}
+
+.close-button {
+    position: absolute;
+    top: 8px;
+    right: 0px;
+    color: #aaa;
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.api-schema pre {
+    font-size: 0.8rem;
+    max-width: 40rem;
+    margin-left: 1rem;
+    background-color: #232323; /* Dark background for code block */
+    color: #8ec07c; /* Soft green for text */
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+}
+
+.api-schema code {
+    font-family: 'Courier New', monospace; /* Use a monospaced font */
 }
 
 .dino-image {
@@ -187,6 +354,15 @@ body {
 .compass-icon {
     height: 100%; /* Adjust the height as needed to fill the card */
     /* width will be auto since it's an img and will maintain aspect ratio */
+}
+
+.signature a {
+    color: #00B7C3; /* Cyan color */
+    text-decoration: none; /* No underline by default */
+}
+
+.signature a:hover {
+    text-decoration: underline; /* Underline on hover */
 }
 
 /* Loader styles */
@@ -220,7 +396,7 @@ body {
 
 .loader:before {
     animation: ball1 1s infinite;
-    background-color: #47597E;
+    background-color: #a9b1ba;
     box-shadow: 30px 0 0 #3edde2;
     margin-bottom: 10px;
 }
@@ -228,7 +404,7 @@ body {
 .loader:after {
     animation: ball2 1s infinite;
     background-color: #3edde2;
-    box-shadow: 30px 0 0 #47597E;
+    box-shadow: 30px 0 0 #a9b1ba;
 }
 
 @keyframes rotate {
@@ -254,15 +430,15 @@ body {
 
 @keyframes ball2 {
     0% {
-        box-shadow: 30px 0 0 #47597E;
+        box-shadow: 30px 0 0 #a9b1ba;
     }
     50% {
-        box-shadow: 0 0 0 #47597E;
+        box-shadow: 0 0 0 #a9b1ba;
         margin-top: -20px;
         transform: translate(15px, 15px);
     }
     100% {
-        box-shadow: 30px 0 0 #47597E;
+        box-shadow: 30px 0 0 #a9b1ba;
         margin-top: 0;
     }
 }
@@ -272,53 +448,61 @@ body {
 @media (max-width: 1280px) {
     .header {
         margin-bottom: 10px;
-        border-bottom: 2px solid #47597E;  /* Slate blue border */
+        border-bottom: 2px solid #a9b1ba; /* Slate blue border */
     }
+
+    /* Hide the logo container on mobile */
+    .logo-container {
+        display: none;
+    }
+
     .container {
         padding: 10px;
     }
-  
+
     .important-metrics {
-        flex-direction: column;  /* Change the main axis to vertical */
-        margin: 0;
-        margin-bottom: 10px;
-        padding: 0;
+        display: grid; /* Use grid layout for mobile */
+        grid-template-columns: repeat(2, 1fr); /* Two columns, each taking up half of the width */
+        grid-gap: 10px; /* Space between grid items */
+        align-items: stretch; /* Stretch items vertically */
+        font-size: 1em; /* Adjust font size for smaller screens */
+        padding: 10px; /* Reduce padding for smaller screens */
     }
 
-    .important-metrics-left, .important-metrics-right {
-        flex: 1;  /* Let each row take up equal height */
-        flex-direction: row;  /* Make sure the cards are in a row format */
+    .important-metrics-left,
+    .important-metrics-right {
+        /* Keep flex: 1 to maintain equal height */
+        flex-direction: column; /* Stack cards vertically within each section on mobile */
+        justify-content: flex-start; /* Align items to the start */
+        align-items: stretch; /* Stretch cards to fit the container width */
+        margin: 5px 0; /* Adjust margin for mobile layout */
     }
 
     .important-metrics-card {
-        /* existing styles */
-        flex: 1;  /* Let each card take up equal space */
-        margin: 5px;  /* Add some margin around each card */
-        padding: 10px;  /* Add some padding inside each card */
-        max-height: 92px; /* Or whatever maximum height you want */
+        margin: 5px 0px; /* Remove margin for grid layout */
+        padding: 10px; /* Adjust padding inside each card */
+        height: auto; /* Allow height to be determined by content */
+        flex: none; /* Disable flexbox properties */
     }
 
     .important-metrics-divider {
         display: none; /* Hide the divider on mobile */
     }
-    
+
     .important-label {
-        margin: 0;
-        /* font-size: 0.8em; */
-        margin: 0;  /* Explicitly set margin to zero */
-        padding: 0;  /* Explicitly set padding to zero */
-        line-height: 1.2;  /* Adjust line height */
-        box-sizing: border-box;  /* Include padding and border in element's total width and height */
-        font-size: calc(0.6em + 1.5vw);  /* Smaller base size plus more aggressive scaling */
+        margin: 0; /* Explicitly set margin to zero */
+        padding: 0; /* Explicitly set padding to zero */
+        line-height: 1.2; /* Adjust line height */
+        box-sizing: border-box; /* Include padding and border in element's total width and height */
+        font-size: 1em; /* Smaller base size plus more aggressive scaling */
     }
 
     .important-value {
-        /* font-size: 1.2em; */
-        margin: 0;  /* Explicitly set margin to zero */
-        padding: 0;  /* Explicitly set padding to zero */
-        line-height: 1.2;  /* Adjust line height */
-        box-sizing: border-box;  /* Include padding and border in element's total width and height */
-        font-size: calc(1em + 1.5vw);  /* Smaller base size plus more aggressive scaling */
+        margin: 0; /* Explicitly set margin to zero */
+        padding: 0; /* Explicitly set padding to zero */
+        line-height: 1.2; /* Adjust line height */
+        box-sizing: border-box; /* Include padding and border in element's total width and height */
+        font-size: 2em; /* Smaller base size plus more aggressive scaling */
     }
 
     .grid {

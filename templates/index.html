@@ -3,17 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LETU Civil Weather Dashboard</title>
+    <title>LETU Weather Dashboard</title>
     <link rel="stylesheet" href="/static/css/styles.css">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body class="bg-dark text-white">
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close-button">&times;</span>
+            </div>
+            <h2>LeTourneau Civil Engineering Weather Dashboard</h2>
+            <p>This dynamic Weather Dashboard is a key component of the <a href="https://www.letu.edu/academics/engineering/senior-design-projects.html" style="color: #00B7C3;">FENNEC Senior Design Project</a> (Flight Emulation using Neural Networks for Event Characterization) for the academic year 2023-24. It's crafted with simplicity and efficiency in mind, utilizing fundamental JavaScript, HTML, and CSS for the front end. The dashboard offers seamless access to weather data by integrating with the WeatherLink API.</p>
+            <p>Understanding weather conditions is crucial for the safe operation of our model helicopter as we attempt to record quality data. Accurate weather data is essential not only for ensuring flight safety but also for recording clean, reliable data during our operations. It's highly beneficial that the Flow senior design team has already installed a <em>Davis Instruments Vantage Pro</em> weather station in the same field where our flights will be conducted. This setup allows for real-time, precise weather monitoring, significantly enhancing the safety and efficacy of our aerial activities.</p>
+            <p>At its core, this project is powered by a Python/Flask backend that handles data retrieval and caching. This design choice ensures data privacy by withholding sensitive information and allows numerous clients to connect to our API without the need for individual keys. The dashboard is user-friendly and provides a schema for both current and historic weather data queries, making it accessible without requiring user authentication.</p>
+            <!-- GitHub Link -->
+            <div class="github-link">
+                <a href="https://github.com/jaedync/letu-weather" target="_blank">
+                    <img src="/static/github.svg" alt="GitHub Logo" style="height: 45px; width: auto;"/>
+                </a>
+            </div>
+            <!-- Horizontal Divider with Vertical Padding -->
+            <div style="margin-top: 10px; margin-bottom: 20px;">
+                <hr>
+            </div>
+            <div class="api-schema">
+                <h3 style="margin-top: 50px;">/current API example schema</h3>
+                <pre><code id="api-schema-example"></code></pre>
+            </div>
+            <div class="api-schema">
+                <h3 style="margin-top: 50px;">/historic API example schema</h3>
+                <pre><code id="api-schema-example-historic"></code></pre>
+            </div>
+            <!-- Horizontal Divider with Vertical Padding -->
+            <div style="margin-top: 30px; margin-bottom: 20px;">
+                <hr>
+            </div>
+            <!-- Signature -->
+            <div class="signature" style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
+                <p>Developed with ❤️<br>
+                <a href="mailto:me@jaedyncilton.com">Jaedyn Chilton</a></p>
+            </div>
+        </div>
+    </div>    
     <div class="container">
+        <button id="infoButton" class="info-btn">ℹ️</button>
         <div class="data-age-box">
             <span id="data-age">Data Age: </span>
         </div>
         <div class="header text-center mb-5">
             <h1>LeTourneau Civil Engineering Weather Station</h1>
+            <div class="logo-container">
+                <!-- <a href="https://www.davisinstruments.com/" target="_blank" class="logo-link">
+                    <img src="/static/davis.svg" alt="Davis Logo" class="header-logo" style="width: 250px;">
+                </a> -->
+                <a href="https://www.letu.edu/" target="_blank" class="logo-link">
+                    <img src="/static/fennec.png" alt="Davis Logo" class="header-logo" style="width: 70px; margin-right: 1rem;", >
+                </a>
+                <!-- Add any new logos here -->
+            </div>
         </div>
 
         <div class="important-metrics">
