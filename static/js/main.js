@@ -97,24 +97,28 @@ ${exampleData}`;
 }
 
 // Helper function to create a single card
-function createCard(title, value, isWindDirection = false, rotationDegree = 0) {
+function createCard(title, value, isWindDirection = false, rotationDegree = 0, valueId = '') {
     const card = document.createElement('div');
     card.className = 'card';
-    let contentHTML = `
-        <h3>${title}</h3>
-        <p>${value}</p>`;
+    const pElement = `<p${valueId ? ` id="${valueId}"` : ''}>${value}</p>`;
 
-    if (isWindDirection) {
-        // Include the rotation directly in the style attribute
-        contentHTML = `
-            <h3>${title}</h3>
-            <div class="wind-direction-content">
-                <p>${value}</p>
-                <img class="compass-icon" src="/static/pointer.svg" alt="Compass" style="transform: rotate(${rotationDegree}deg);" />
-            </div>`;
-    }
-    
+    let contentHTML = isWindDirection ? `
+        <h3>${title}</h3>
+        <div class="wind-direction-content">
+            ${pElement}
+            <img class="compass-icon" src="/static/pointer.svg" alt="Compass" style="transform: rotate(${rotationDegree}deg);" />
+        </div>` :
+        `<h3>${title}</h3>
+        ${pElement}`;
+
     card.innerHTML = contentHTML;
+
+    // Apply animation to h3 and p elements
+    const h3Element = card.querySelector('h3');
+    const pElementInCard = card.querySelector('p');
+    // if (h3Element) applyFadeInAnimation(h3Element);
+    if (pElementInCard) applyFadeInAnimation(pElementInCard);
+
     return card;
 }
 
@@ -129,7 +133,20 @@ function updateTimeSinceLastUpdate(lastSeenUnixTime) {
     const ageInSeconds = currentTime - lastSeenUnixTime;
     const ageMinutes = Math.floor(ageInSeconds / 60);
     const ageSeconds = ageInSeconds % 60;
-    document.getElementById('data-age').textContent = `Data Age: ${ageMinutes}m ${ageSeconds}s`;
+    // const ageText = `Data Age: ${ageMinutes}m ${ageSeconds}s`;
+
+    // const ageSpan = document.getElementById('data-age-span');
+    const ageP = document.getElementById('data-age');
+
+    // if (ageSpan) ageSpan.textContent = ageText;
+    if (ageP) ageP.textContent = `${ageMinutes}m ${ageSeconds}s ago`;
+}
+
+function applyFadeInAnimation(element) {
+    element.classList.add('text-fade-in-slide');
+    element.addEventListener('animationend', () => {
+        element.classList.remove('text-fade-in-slide');
+    });
 }
 
 // Render the current data section
@@ -137,148 +154,226 @@ async function renderCurrentData() {
     console.log("Fetching current data...");
     const data = await fetchData('/current');
     displayApiSchemaExample(data);
-    const sensor1Data = data.data[0];
-    const sensor2Data = data.data[1];
-    lastFetchedTS = sensor1Data.ts;
-    updateImportantMetrics(sensor1Data);
-    updateOtherMetrics(sensor1Data, sensor2Data);
+    const sensorData = data.data[0];
+    lastFetchedTS = sensorData.ts;
+    updateImportantMetrics(sensorData);
+    updateOtherMetrics(sensorData);
+}
+
+// Constants for color ranges
+const COLOR_RANGES = {
+    RED_MAX: 255,
+    GREEN_MAX: 255,
+    BLUE_MAX: 255,
+    TEMPERATURE_COLD: 32,
+    TEMPERATURE_WARM: 60,
+    TEMPERATURE_HOT: 80,
+    TEMPERATURE_VERY_HOT: 90,
+    HUMIDITY_DRY: 40,
+    HUMIDITY_MOIST: 60
+};
+
+// Helper function to interpolate color values
+function interpolateColor(minValue, maxValue, startRange, endRange, value) {
+    return Math.floor(startRange + (value - minValue) * (endRange - startRange) / (maxValue - minValue));
 }
 
 // Map temperature to a color
 function getColorForTemperature(value) {
+    let { RED_MAX, GREEN_MAX, BLUE_MAX, TEMPERATURE_COLD, TEMPERATURE_WARM, TEMPERATURE_HOT, TEMPERATURE_VERY_HOT } = COLOR_RANGES;
     let red = 0, green = 0, blue = 0;
-    if (value < 32) {
-        blue = 255;
-    } else if (value >= 32 && value < 60) {
-        blue = Math.floor(255 - ((value - 32) * (255 - 0) / (60 - 32)));
-        green = Math.floor((value - 32) * (255 - 0) / (60 - 32));
-    } else if (value >= 60 && value < 80) {
-        green = 255;
-        red = Math.floor((value - 60) * (255 - 0) / (80 - 60));
-    } else if (value >= 80 && value < 90) {
-        red = 255;
-        green = Math.floor(255 - ((value - 80) * (255 - 0) / (90 - 80)));
+
+    if (value < TEMPERATURE_COLD) {
+        blue = BLUE_MAX;
+    } else if (value < TEMPERATURE_WARM) {
+        blue = interpolateColor(TEMPERATURE_COLD, TEMPERATURE_WARM, BLUE_MAX, 0, value);
+        green = interpolateColor(TEMPERATURE_COLD, TEMPERATURE_WARM, 0, GREEN_MAX, value);
+    } else if (value < TEMPERATURE_HOT) {
+        green = GREEN_MAX;
+        red = interpolateColor(TEMPERATURE_WARM, TEMPERATURE_HOT, 0, RED_MAX, value);
+    } else if (value < TEMPERATURE_VERY_HOT) {
+        red = RED_MAX;
+        green = interpolateColor(TEMPERATURE_HOT, TEMPERATURE_VERY_HOT, GREEN_MAX, 0, value);
     } else {
-        red = 255;
+        red = RED_MAX;
     }
-    return `rgba(${red}, ${green}, ${blue}, 0.2)`;
+
+    let rgba = `rgba(${red}, ${green}, ${blue}, 0.2)`;
+    return { 
+        color: rgba, 
+        borderColor: rgba.replace('0.2', '1') 
+    };
 }
 
 // Map humidity to a color
 function getColorForHumidity(value) {
+    let { HUMIDITY_DRY, HUMIDITY_MOIST } = COLOR_RANGES;
     let red = 0, green = 0, blue = 0;
-    
-    if (value < 40) {
-        // Dark brown to light brown
-        red = 139 + Math.floor((value / 40) * (222 - 139));
-        green = 69 + Math.floor((value / 40) * (184 - 69));
-        blue = 19 + Math.floor((value / 40) * (135 - 19));
-    } else if (value >= 40 && value < 60) {
-        // Light brown to light green
-        red = 222 - Math.floor(((value - 40) / 20) * (222 - 144));
-        green = 184 - Math.floor(((value - 40) / 20) * (184 - 238));
-        blue = 135 - Math.floor(((value - 40) / 20) * (135 - 144));
+
+    if (value < HUMIDITY_DRY) {
+        red = interpolateColor(0, HUMIDITY_DRY, 139, 222, value);
+        green = interpolateColor(0, HUMIDITY_DRY, 69, 184, value);
+        blue = interpolateColor(0, HUMIDITY_DRY, 19, 135, value);
+    } else if (value < HUMIDITY_MOIST) {
+        red = interpolateColor(HUMIDITY_DRY, HUMIDITY_MOIST, 222, 144, value);
+        green = interpolateColor(HUMIDITY_DRY, HUMIDITY_MOIST, 184, 238, value);
+        blue = interpolateColor(HUMIDITY_DRY, HUMIDITY_MOIST, 135, 144, value);
     } else {
-        // Light green to dark blue
-        red = 144 - Math.floor(((value - 60) / 40) * 144);
-        green = 238 - Math.floor(((value - 60) / 40) * 238);
-        blue = 144 + Math.floor(((value - 60) / 40) * (255 - 144));
+        red = interpolateColor(HUMIDITY_MOIST, 100, 144, 0, value);
+        green = interpolateColor(HUMIDITY_MOIST, 100, 238, 0, value);
+        blue = interpolateColor(HUMIDITY_MOIST, 100, 144, 255, value);
     }
-    
-    return `rgba(${red}, ${green}, ${blue}, 0.2)`;
+
+    let rgba = `rgba(${red}, ${green}, ${blue}, 0.2)`;
+    return { 
+        color: rgba, 
+        borderColor: rgba.replace('0.2', '1') 
+    };
+}
+
+// Mapping wind speed to color
+const WIND_SPEED_COLORS = {
+    LOW: { color: 'rgba(57, 255, 20, 0.2)', borderColor: 'rgba(57, 255, 20, 1)' },
+    MEDIUM: { color: 'rgba(0, 255, 0, 0.2)', borderColor: 'rgba(0, 255, 0, 1)' },
+    MEDIUM_HIGH: { color: 'rgba(255, 255, 0, 0.2)', borderColor: 'rgba(255, 255, 0, 1)' },
+    HIGH: { color: 'rgba(255, 165, 0, 0.4)', borderColor: 'rgba(255, 165, 0, 1)' },
+    VERY_HIGH: { color: 'rgba(255, 0, 0, 0.2)', borderColor: 'rgba(255, 0, 0, 1)' }
+};
+
+function getWindSpeedColor(value) {
+    if (value < 3) return WIND_SPEED_COLORS.LOW;
+    if (value < 6) return WIND_SPEED_COLORS.MEDIUM;
+    if (value < 9) return WIND_SPEED_COLORS.MEDIUM_HIGH;
+    if (value <= 12) return WIND_SPEED_COLORS.HIGH;
+    return WIND_SPEED_COLORS.VERY_HIGH;
 }
 
 function getBackgroundColorForMetric(label, value) {
-    let color = '';
-    let borderColor = '';
+    let colorDetails = {};
+
     switch (label) {
         case 'Temperature':
-            color = getColorForTemperature(value);
-            borderColor = color.replace('0.2', '1');
+            colorDetails = getColorForTemperature(value);
             break;
         case 'Humidity':
-            color = getColorForHumidity(value);
-            borderColor = color.replace('0.2', '1');
+            colorDetails = getColorForHumidity(value);
             break;
         case 'Wind Speed':
         case 'Wind Gusts':
-            if (value < 3) {
-                color = 'rgba(57, 255, 20, 0.2)'; // neon green
-                borderColor = 'rgba(57, 255, 20, 1)'; // neon green border
-            } else if (value >= 3 && value < 6) {
-                color = 'rgba(0, 255, 0, 0.2)'; // green
-                borderColor = 'rgba(0, 255, 0, 1)'; // green border
-            } else if (value >= 6 && value < 9) {
-                color = 'rgba(255, 255, 0, 0.2)'; // yellow
-                borderColor = 'rgba(255, 255, 0, 1)'; // yellow border
-            } else if (value >= 9 && value <= 12) {
-                color = 'rgba(255, 165, 0, 0.4)'; // orange
-                borderColor = 'rgba(255, 165, 0, 1)'; // orange border
-            } else {
-                color = 'rgba(255, 0, 0, 0.2)'; // red
-                borderColor = 'rgba(255, 0, 0, 1)'; // red border
-            }
-        break;
-                
+            colorDetails = getWindSpeedColor(value);
+            break;
         default:
-            color = 'rgba(114, 137, 218, 0.5)';  // Lighter slate blue as default
-            borderColor = 'rgba(114, 137, 218, 1)';  // Lighter slate blue border as default
+            colorDetails.color = 'rgba(114, 137, 218, 0.5)';
+            colorDetails.borderColor = 'rgba(114, 137, 218, 1)';
+            break;
     }
-    return { color, borderColor };
+
+    // Ensure that colorDetails has a color property
+    if (!colorDetails.color) {
+        console.error('Color not defined for metric:', label);
+        return { color: 'rgba(0, 0, 0, 0.2)', borderColor: 'rgba(0, 0, 0, 1)' }; // Default to black if color not found
+    }
+
+    // Set borderColor based on color if not explicitly defined
+    if (!colorDetails.borderColor) {
+        colorDetails.borderColor = colorDetails.color.replace('0.2', '1');
+    }
+
+    return colorDetails;
 }
 
 function updateImportantMetrics(sensorData) {
     const importantMetricsDiv = document.querySelector('.important-metrics');
-    importantMetricsDiv.innerHTML = ''; // Clear any existing content
 
-    const importantMetricsLeftDiv = document.createElement('div');
-    importantMetricsLeftDiv.className = 'important-metrics-left';
+    // Ensure the structure with left and right divs and the divider
+    let importantMetricsLeftDiv = importantMetricsDiv.querySelector('.important-metrics-left');
+    let importantMetricsRightDiv = importantMetricsDiv.querySelector('.important-metrics-right');
+    let divider = importantMetricsDiv.querySelector('.important-metrics-divider');
 
-    const importantMetricsRightDiv = document.createElement('div');
-    importantMetricsRightDiv.className = 'important-metrics-right';
+    if (!importantMetricsLeftDiv) {
+        importantMetricsLeftDiv = document.createElement('div');
+        importantMetricsLeftDiv.className = 'important-metrics-left';
+        importantMetricsDiv.appendChild(importantMetricsLeftDiv);
+    }
 
-    const divider = document.createElement('div');
-    divider.className = 'important-metrics-divider';
+    if (!importantMetricsRightDiv) {
+        importantMetricsRightDiv = document.createElement('div');
+        importantMetricsRightDiv.className = 'important-metrics-right';
+        importantMetricsDiv.appendChild(importantMetricsRightDiv);
+    }
+
+    if (!divider) {
+        divider = document.createElement('div');
+        divider.className = 'important-metrics-divider';
+        importantMetricsDiv.appendChild(divider);
+    }
 
     const metrics = [
-        { label: 'Temperature', value: `${parseFloat(sensorData.temp).toFixed(1)}°F` },
-        { label: 'Wind Speed', value: `${parseFloat(sensorData.wind_speed_avg_last_10_min).toFixed(1)} MPH` },
-        { label: 'Wind Gusts', value: `${parseFloat(sensorData.wind_speed_hi_last_10_min)} MPH` },
-        { label: 'Humidity', value: `${parseFloat(sensorData.hum).toFixed(1)}%` },
-    ];  
+        { label: 'Temperature', value: `${parseFloat(sensorData.temp).toFixed(1)}°F`, side: 'left' },
+        { label: 'Humidity', value: `${parseFloat(sensorData.hum).toFixed(1)}%`, side: 'left' },
+        { label: 'Wind Speed', value: `${parseFloat(sensorData.wind_speed_avg_last_10_min).toFixed(1)} MPH`, side: 'right' },
+        { label: 'Wind Gusts', value: `${parseFloat(sensorData.wind_speed_hi_last_10_min)} MPH`, side: 'right' },
+    ];
 
-    // Create or update the metrics
-    metrics.forEach(({ label, value }) => {
-        let metricElement = document.createElement('div');
-        metricElement.className = 'important-metrics-card';
-        metricElement.innerHTML = `
-            <div class="important-label">${label}</div>
-            <div class="important-value">${value}</div>
-        `;
+    const delayIncrement = 30; // milliseconds to wait before updating the next metric
 
-        // Apply background color based on the value
-        const { color, borderColor } = getBackgroundColorForMetric(label, parseFloat(value));
-        metricElement.style.backgroundColor = color;
-        metricElement.style.borderColor = borderColor;
-
-        // Add attention-grabbing class for wind conditions at or over 10 MPH
-        if ((label === 'Wind Speed' || label === 'Wind Gusts') && parseFloat(value) >= 12) {
-        metricElement.classList.add('attention-grabbing');
+    metrics.forEach((metric, index) => {
+        let metricElement = document.querySelector(`.important-metrics-${metric.side} .important-metrics-card[data-metric="${metric.label}"]`);
+    
+        const updateCard = () => {
+            updateImportantMetricCard(metricElement, metric);
+        };
+    
+        if (!metricElement) {
+            // Card does not exist yet, create it without delay
+            metricElement = createImportantMetricCard(metric);
+            document.querySelector(`.important-metrics-${metric.side}`).appendChild(metricElement);
+            updateCard(); // Update immediately
         } else {
-        metricElement.classList.remove('attention-grabbing');
-        }
-
-        // Append to the left or right div based on the metric label
-        if (label === 'Temperature' || label === 'Humidity') {
-            importantMetricsLeftDiv.appendChild(metricElement);
-        } else {
-            importantMetricsRightDiv.appendChild(metricElement);
+            // Card exists, apply cascade delay
+            const delay = index * delayIncrement;
+            setTimeout(updateCard, delay);
         }
     });
+    
+}
 
-    importantMetricsDiv.appendChild(importantMetricsLeftDiv);
-    importantMetricsDiv.appendChild(divider);
-    importantMetricsDiv.appendChild(importantMetricsRightDiv);
+function updateImportantMetricCard(metricElement, metric) {
+    metricElement.setAttribute('data-metric', metric.label);
+    const valueElement = metricElement.querySelector('.important-value');
+    valueElement.textContent = metric.value;
+    applyFadeInAnimation(valueElement);
+
+    const { color, borderColor } = getBackgroundColorForMetric(metric.label, parseFloat(metric.value));
+    metricElement.style.backgroundColor = color;
+    metricElement.style.borderColor = borderColor;
+
+    if ((metric.label === 'Wind Speed' || metric.label === 'Wind Gusts') && parseFloat(metric.value) >= 12) {
+        metricElement.classList.add('attention-grabbing');
+    } else {
+        metricElement.classList.remove('attention-grabbing');
+    }
+}
+
+function createImportantMetricCard(metric) {
+    const card = document.createElement('div');
+    card.className = 'important-metrics-card';
+    card.setAttribute('data-metric', metric.label);
+
+    const contentHTML = `
+        <div class="important-label">${metric.label}</div>
+        <div class="important-value">${metric.value}</div>
+    `;
+
+    card.innerHTML = contentHTML;
+    applyFadeInAnimation(card); // Apply animation to the whole card
+
+    // Apply background color based on the value
+    const { color, borderColor } = getBackgroundColorForMetric(metric.label, parseFloat(metric.value));
+    card.style.backgroundColor = color;
+    card.style.borderColor = borderColor;
+
+    return card;
 }
 
 // Function to calculate the start time from the current timestamp and uptime, then format it
@@ -321,60 +416,138 @@ function getPreciseCardinalDirection(degree) {
     return directions[index];
 }
 
-function updateOtherMetrics(sensorData, auxiliaryData) {
+function updateOtherMetrics(sensorData) {
     const currentDataDiv = document.getElementById('current-data');
-    const fragment = document.createDocumentFragment();
-    const ts = auxiliaryData.ts;
-    
-    // sensor metrics
-    const metrics = ['bar_absolute', 'uv_index', 'solar_rad', 'dew_point', 'wind_chill', 'heat_index', 'thw_index'];
-    const aestheticLabels = ['Barometric Pressure', 'UV Index', 'Solar Radiation', 'Dew Point', 'Wind Chill', 'Heat Index', 'THW Index'];
-    const units = ['inHg', '', 'W/m²', '°F', '°F', '°F', '°F'];
+    const combinedMetrics = prepareMetrics(sensorData);
 
-    // auxiliary metrics
-    const auxiliaryMetrics = ['input_voltage', 'wifi_rssi', 'link_uptime', 'uptime'];
-    const auxiliaryLabels = ['Input Voltage', 'Uplink WiFi RSSI', 'Last Uplink Boot', 'Last Station Boot'];
-    const auxiliaryUnits = ['V', 'dBm', '', ''];
-
-    // Combine both sets of metrics
-    const combinedMetrics = metrics.concat(auxiliaryMetrics);
-    const combinedLabels = aestheticLabels.concat(auxiliaryLabels);
-    const combinedUnits = units.concat(auxiliaryUnits);
+    let delayIncrement = 20; // milliseconds for each subsequent card update
 
     combinedMetrics.forEach((metric, index) => {
-        let value;
-        // Extract the value from the appropriate data source
-        if (metrics.includes(metric)) {
-            value = sensorData[metric];
+        let card = currentDataDiv.querySelector(`.card[data-metric="${metric.name}"]`);
+
+        const updateCard = () => {
+            updateMetricCard(card, metric, sensorData);
+        };
+
+        if (!card) {
+            // Card does not exist yet, create and update it immediately
+            card = createMetricCard(metric, sensorData);
+            currentDataDiv.appendChild(card);
+            updateCard(); // Update immediately
         } else {
-            value = auxiliaryData[metric];
+            // Card exists, apply cascade delay
+            const delay = index * delayIncrement; // Calculate delay based on index
+            setTimeout(updateCard, delay);
         }
-
-        // Format value for UV index and Fahrenheit metrics
-        if (metric === 'uv_index' || metric === 'dew_point' || metric === 'wind_chill' || metric === 'heat_index' || metric === 'thw_index') {
-            value = parseFloat(value).toFixed(1); // Ensure one decimal place
-        } else if (metric === 'input_voltage') {
-            value = (value / 1000).toFixed(2); // Divides by 1000 for input voltage
-        } else if (metric === 'link_uptime' || metric === 'uptime') {
-            value = calculateStartTime(ts, value); // Calculates start time and formats it
-        }
-
-        const valueWithUnit = value + (combinedUnits[index] ? ` ${combinedUnits[index]}` : '');
-        fragment.appendChild(createCard(combinedLabels[index], valueWithUnit));
     });
 
-    // Get the rotation degree for the compass
-    const rotationDegree = sensorData.wind_dir_scalar_avg_last_10_min;
     
-    // Create or update the wind direction card with rotation
-    const cardinalDirection = getPreciseCardinalDirection(rotationDegree);
-    const windDirectionValue = `${cardinalDirection} ${rotationDegree}°`;
-    const windDirectionCard = createCard('Wind Direction', windDirectionValue, true, rotationDegree);
+}
 
-    // Update the DOM
-    currentDataDiv.innerHTML = '';
-    currentDataDiv.appendChild(windDirectionCard);
-    currentDataDiv.appendChild(fragment);
+function prepareMetrics(sensorData) {
+    return [
+        { name: 'wind_direction', label: 'Wind Direction', unit: '°', value: sensorData.wind_dir_scalar_avg_last_10_min, isWindDirection: true },
+        { name: 'bar_absolute', label: 'Barometric Pressure', unit: 'inHg', value: sensorData.bar_absolute },
+        { name: 'uv_index', label: 'UV Index', unit: '', value: sensorData.uv_index },
+        { name: 'solar_rad', label: 'Solar Radiation', unit: 'W/m²', value: sensorData.solar_rad },
+        { name: 'dew_point', label: 'Dew Point', unit: '°F', value: sensorData.dew_point },
+        { name: 'wind_chill', label: 'Wind Chill', unit: '°F', value: sensorData.wind_chill },
+        { name: 'heat_index', label: 'Heat Index', unit: '°F', value: sensorData.heat_index },
+        { name: 'thw_index', label: 'THW Index', unit: '°F', value: sensorData.thw_index },
+        { name: 'input_voltage', label: 'Input Voltage', unit: 'V', value: sensorData.input_voltage / 1000 }, // Dividing by 1000 to convert millivolts to volts
+        { name: 'wifi_rssi', label: 'Uplink WiFi RSSI', unit: 'dBm', value: sensorData.wifi_rssi },
+        { name: 'link_uptime', label: 'Last Uplink Boot', unit: '', value: calculateStartTime(sensorData.ts, sensorData.link_uptime) },
+        { name: 'uptime', label: 'Last Station Boot', unit: '', value: calculateStartTime(sensorData.ts, sensorData.uptime) },
+        { name: 'rainfall_last_24_hr_mm', label: 'Rainfall Last 24hr', unit: 'mm', value: sensorData.rainfall_last_24_hr_mm },
+        { name: 'rainfall_last_60_min_mm', label: 'Rainfall Last 60min', unit: 'mm', value: sensorData.rainfall_last_60_min_mm },
+        { name: 'rainfall_last_15_min_mm', label: 'Rainfall Last 15min', unit: 'mm', value: sensorData.rainfall_last_15_min_mm },
+        { name: 'data_age', label: 'Data Age', unit: '', value: getDataAge(sensorData.ts), isDataAge: true },
+    ];
+}
+
+function createMetricCard(metric, sensorData) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.setAttribute('data-metric', metric.name);
+
+    let contentHTML;
+    if (metric.isWindDirection) {
+        const rotationDegree = getWindDirectionRotationDegree(sensorData.wind_dir_scalar_avg_last_10_min);
+        const cardinalDirection = getPreciseCardinalDirection(rotationDegree);
+        const windDirectionValue = `${cardinalDirection} ${rotationDegree}°`;
+        contentHTML = `
+            <h3>${metric.label}</h3>
+            <div class="wind-direction-content">
+                <p id="${metric.name}">${windDirectionValue}</p>
+                <img class="compass-icon" src="/static/pointer.svg" alt="Compass" style="transform: rotate(${rotationDegree}deg);" />
+            </div>`;
+    } else if (metric.isDataAge) {
+        contentHTML = `
+            <h3>${metric.label}</h3>
+            <p id="data-age">${metric.value}</p>`;
+    } else {
+        contentHTML = `
+            <h3>${metric.label}</h3>
+            <p id="${metric.name}">${metric.value} ${metric.unit}</p>`;
+    }
+
+    card.innerHTML = contentHTML;
+    applyFadeInAnimation(card);
+    return card;
+}
+
+function updateMetricCard(card, metric, sensorData) {
+    if (metric.isWindDirection) {
+        const rotationDegree = getWindDirectionRotationDegree(sensorData.wind_dir_scalar_avg_last_10_min);
+        const cardinalDirection = getPreciseCardinalDirection(rotationDegree);
+        const windDirectionValue = `${cardinalDirection} ${rotationDegree}°`;
+        const valueElement = card.querySelector(`p#${metric.name}`);
+        const compassIcon = card.querySelector('.compass-icon');
+        valueElement.textContent = windDirectionValue;
+        applyFadeInAnimation(valueElement);
+        compassIcon.style.transform = `rotate(${rotationDegree}deg)`;
+    } else if (metric.isDataAge) {
+        const valueElement = card.querySelector(`p#${metric.name}`);
+        valueElement.textContent = getDataAge(sensorData.ts);
+        applyFadeInAnimation(valueElement);
+    } else {
+        const valueElement = card.querySelector(`p#${metric.name}`);
+        valueElement.textContent = `${metric.value} ${metric.unit}`;
+        applyFadeInAnimation(valueElement);
+    }
+}
+
+function getWindDirectionRotationDegree(degree) {
+    // Normalize the degree to be within 0-359
+    degree = degree % 360;
+    if (degree < 0) {
+        degree += 360; // Handle negative degrees
+    }
+    return degree;
+}
+
+// Function to get Data Age in "minutes and seconds ago"
+function getDataAge(lastFetchedTS) {
+    const currentTime = Math.floor(new Date().getTime() / 1000);
+    const ageInSeconds = currentTime - lastFetchedTS;
+    const ageMinutes = Math.floor(ageInSeconds / 60);
+    const ageSeconds = ageInSeconds % 60;
+    return `${ageMinutes}m ${ageSeconds}s ago`;
+}
+
+// Helper function to format time as "X hrs, Y min ago" or "date:time"
+function formatTimeAgo(unixTimestamp) {
+    const now = new Date();
+    const timestamp = new Date(unixTimestamp * 1000);
+    const diff = now - timestamp;
+
+    if (diff < 24 * 3600 * 1000) { // Less than 24 hours
+        const hours = Math.floor(diff / (3600 * 1000));
+        const minutes = Math.ceil((diff % (3600 * 1000)) / 60000);
+        return `${hours}h ${minutes}m ago`;
+    } else {
+        return timestamp.toLocaleString(); // More than 24 hours
+    }
 }
 
 function createChartContainers(chartSpecs) {
@@ -401,6 +574,7 @@ const chartSpecs = {
     'wind-angle': ['wind_speed_hi_dir', 'wind_dir_of_prevail'],
     'barometer': ['bar_absolute', 'bar_hi', 'bar_lo', 'bar_sea_level'],
     'solar': ['solar_rad_avg', 'solar_rad_hi'],
+    'rainfall': ['rainfall_in'],
 
     'dew-point': ['dew_point_hi', 'dew_point_last', 'dew_point_lo'],
     'wet-bulb': ['wet_bulb_hi', 'wet_bulb_last', 'wet_bulb_lo'],
@@ -517,18 +691,38 @@ async function updateCharts(sensorData) {
 
         // Layout settings
         const layout = {
-            paper_bgcolor: '#222',
+            paper_bgcolor: 'transparent',
             plot_bgcolor: '#333',
-            font: { color: '#fff' },
-            xaxis: { gridcolor: '#888' },
-            yaxis: { gridcolor: '#888' },
+            font: { color: '#fff', family: 'Gotham Book, Arial, sans-serif' },
+            xaxis: { 
+                gridcolor: '#888',
+                title: {
+                    font: {
+                        family: 'Gotham Black, Arial, sans-serif'
+                    }
+                }
+            },
+            yaxis: { 
+                gridcolor: '#888',
+                title: {
+                    font: {
+                        family: 'Gotham Black, Arial, sans-serif'
+                    }
+                }
+            },
             showlegend: false,
-            title: formatChartTitle(chartName),
+            title: {
+                text: formatChartTitle(chartName), // Set the title text
+                font: {
+                    family: 'Gotham Book, Arial, sans-serif',
+                    color: '#fff'
+                }
+            },
             margin: {
                 l: 30, // left margin
-                r: 30, // right margin
-                b: 45, // bottom margin
-                t: 55  // top margin
+                r: 15, // right margin
+                b: 30, // bottom margin
+                t: 35  // top margin
             },
             responsive: true
         };

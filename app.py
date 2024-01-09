@@ -90,7 +90,7 @@ def get_letourneau_station_id():
 
 def fetch_current_weather():
     global current_weather_data
-    station_id = get_letourneau_station_id()  # Assuming this function is defined as in your original script
+    station_id = get_letourneau_station_id()
     if not station_id:
         print("LeTourneau station ID not found")
         return
@@ -118,8 +118,15 @@ def fetch_current_weather():
                 else:
                     ts_data_map[ts] = data_point.copy()
 
-        # Convert the map to a list of dictionaries and wrap it in a 'data' key
-        current_weather_data = {"data": list(ts_data_map.values())}
+        # Convert the map to a list of dictionaries
+        combined_data_list = list(ts_data_map.values())
+
+        # Merge the contents from the second index into the first, prioritizing the first index
+        if len(combined_data_list) > 1:
+            combined_data_list[0] = {**combined_data_list[1], **combined_data_list[0]}
+
+        # Set the current weather data with the merged first entry
+        current_weather_data = {"data": [combined_data_list[0]]}
 
     except requests.HTTPError as e:
         print(f"HTTP Error: {e}")
