@@ -38,29 +38,29 @@ window.onclick = function(event) {
     }
 }
 
-let infoButtonTimer;
+// let infoButtonTimer;
 
-function resetInfoButtonTimer() {
-    clearTimeout(infoButtonTimer); // Clear existing timer
-    document.getElementById('infoButton').style.opacity = '1'; // Make button fully visible
-    infoButtonTimer = setTimeout(() => {
-        document.getElementById('infoButton').style.opacity = '0'; // Fade out the button
-    }, 5000); // Time in milliseconds before the button fades out
-}
+// function resetInfoButtonTimer() {
+//     clearTimeout(infoButtonTimer); // Clear existing timer
+//     document.getElementById('infoButton').style.opacity = '1'; // Make button fully visible
+//     infoButtonTimer = setTimeout(() => {
+//         document.getElementById('infoButton').style.opacity = '0'; // Fade out the button
+//     }, 5000); // Time in milliseconds before the button fades out
+// }
 
-// Initialize the timer when the page loads
-resetInfoButtonTimer();
+// // Initialize the timer when the page loads
+// resetInfoButtonTimer();
 
-// Restart the timer whenever the user interacts with the button
-document.getElementById('infoButton').addEventListener('click', () => {
-    resetInfoButtonTimer();
-    // Add any additional logic for when the button is clicked
-});
+// // Restart the timer whenever the user interacts with the button
+// document.getElementById('infoButton').addEventListener('click', () => {
+//     resetInfoButtonTimer();
+//     // Add any additional logic for when the button is clicked
+// });
 
-// Optionally, reset the timer when the user moves the mouse within the container
-document.querySelector('.container').addEventListener('mousemove', () => {
-    resetInfoButtonTimer();
-});
+// // Optionally, reset the timer when the user moves the mouse within the container
+// document.querySelector('.container').addEventListener('mousemove', () => {
+//     resetInfoButtonTimer();
+// });
 
 // This function formats and displays the API schema in the modal.
 function displayApiSchemaExample(currentData) {
@@ -420,7 +420,7 @@ function updateOtherMetrics(sensorData) {
     const currentDataDiv = document.getElementById('current-data');
     const combinedMetrics = prepareMetrics(sensorData);
 
-    let delayIncrement = 20; // milliseconds for each subsequent card update
+    let delayIncrement = 30; // milliseconds for each subsequent card update
 
     combinedMetrics.forEach((metric, index) => {
         let card = currentDataDiv.querySelector(`.card[data-metric="${metric.name}"]`);
@@ -574,7 +574,7 @@ const chartSpecs = {
     'wind-angle': ['wind_speed_hi_dir', 'wind_dir_of_prevail'],
     'barometer': ['bar_absolute', 'bar_hi', 'bar_lo', 'bar_sea_level'],
     'solar': ['solar_rad_avg', 'solar_rad_hi'],
-    'rainfall': ['rainfall_in'],
+    'rainfall': ['rainfall_mm'],
 
     'dew-point': ['dew_point_hi', 'dew_point_last', 'dew_point_lo'],
     'wet-bulb': ['wet_bulb_hi', 'wet_bulb_last', 'wet_bulb_lo'],
@@ -669,6 +669,16 @@ async function updateCharts(sensorData) {
                     connectgaps: false, // Prevent connecting the gaps with lines
                 };
             });
+        } else if (chartName === 'rainfall') {
+            const hourlyRainfall = aggregateRainfallByHour(sensorData);
+            traces = [{
+                x: hourlyRainfall.map(entry => new Date(entry.timestamp * 1000)),
+                y: hourlyRainfall.map(entry => entry.totalRainfall),
+                type: 'bar', // Use bar chart for rainfall
+                name: 'Rainfall (mm)',
+                text: hourlyRainfall.map(entry => `Rainfall: ${entry.totalRainfall.toFixed(2)} mm`), // Tooltip text
+                hoverinfo: 'text+x', // Show custom text and x values on hover
+            }];
         } else {
             traces = metrics.map(metric => {
                 let transformedData;
@@ -740,6 +750,18 @@ async function updateCharts(sensorData) {
     }
 }
 
+function aggregateRainfallByHour(sensorData) {
+    let hourlyData = {};
+    sensorData.forEach(entry => {
+        const hourTimestamp = Math.floor(entry.ts / 3600) * 3600; // Round down to the nearest hour
+        if (!hourlyData[hourTimestamp]) {
+            hourlyData[hourTimestamp] = { totalRainfall: 0, timestamp: hourTimestamp };
+        }
+        hourlyData[hourTimestamp].totalRainfall += entry.rainfall_mm;
+    });
+    return Object.values(hourlyData);
+}
+
 // Function to format chart titles into Title Case
 function formatChartTitle(chartName) {
     return chartName
@@ -760,7 +782,7 @@ window.addEventListener('load', () => {
     const setNextFetch = () => {
         let now = new Date();
         let randomDelay = getRandomDelay();
-        let delay = ((5 - (now.getMinutes() % 5)) * 60 + randomDelay - now.getSeconds()) * 1000;
+        let delay = ((5 - (now.getMinutes() % 5)) * 60 + randomDelay - now.getSeconds()) * 1000 + 0.1;
 
         setTimeout(() => {
             renderCurrentData();

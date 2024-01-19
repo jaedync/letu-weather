@@ -18,9 +18,12 @@
             <p>Understanding weather conditions is crucial for the safe operation of our model helicopter as we attempt to record quality data. Accurate weather data is essential not only for ensuring flight safety but also for recording clean, reliable data during our operations. It's highly beneficial that the Flow senior design team has already installed a <em>Davis Instruments Vantage Pro</em> weather station in the same field where our flights will be conducted. This setup allows for real-time, precise weather monitoring, significantly enhancing the safety and efficacy of our aerial activities.</p>
             <p>At its core, this project is powered by a Python/Flask backend that handles data retrieval and caching. This design choice ensures data privacy by withholding sensitive information and allows numerous clients to connect to our API without the need for individual keys. The dashboard is user-friendly and provides a schema for both current and historic weather data queries, making it accessible without requiring user authentication.</p>
             <!-- GitHub Link -->
-            <div class="github-link">
+            <div class="social-links">
                 <a href="https://github.com/jaedync/letu-weather" target="_blank">
-                    <img src="/static/github.svg" alt="GitHub Logo" style="height: 45px; width: auto;"/>
+                    <img src="/static/github.svg" alt="GitHub Logo" style="height: 45px; width: auto; margin-right: 1rem;"/>
+                </a>
+                <a href="https://www.letu.edu/academics/engineering/senior-design-projects.html" target="_blank">
+                    <img src="/static/letuwht.svg" alt="LETU Logo" style="height: 45px; width: auto; margin-right: 1rem;"/>
                 </a>
             </div>
             <!-- Horizontal Divider with Vertical Padding -->
@@ -47,7 +50,7 @@
         </div>
     </div>    
     <div class="container">
-        <button id="infoButton" class="info-btn">ℹ️</button>
+        <!-- <button id="infoButton" class="info-btn">ℹ️</button> -->
         <!-- <div class="data-age-box">
             <span id="data-age-span">Data Age: </span>
         </div> -->
@@ -57,9 +60,10 @@
                 <!-- <a href="https://www.davisinstruments.com/" target="_blank" class="logo-link">
                     <img src="/static/davis.svg" alt="Davis Logo" class="header-logo" style="width: 250px;">
                 </a> -->
-                <a href="https://www.letu.edu/academics/engineering/senior-design-projects.html" target="_blank" class="logo-link">
+                <!-- <a href="https://www.letu.edu/academics/engineering/senior-design-projects.html" target="_blank" class="logo-link">
                     <img src="/static/fennec.png" alt="Davis Logo" class="header-logo" style="width: 70px; margin-right: 1rem;", >
-                </a>
+                </a> -->
+                <img src="/static/fennec.png" alt="Fennec Logo" id="infoButton" class="header-logo" style="width: 70px;">
                 <!-- Add any new logos here -->
             </div>
         </div>
