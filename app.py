@@ -6,6 +6,13 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 import os
 from flask_apscheduler import APScheduler
+from collections import deque
+import time
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+
+
+# Global variable to store the timestamps of API calls
+api_call_timestamps = deque()
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///weather_data.db'  # SQLite for demonstration
@@ -62,6 +69,8 @@ def get_letourneau_station_id():
         try:
             print(f"Attempt {attempt}: Fetching LeTourneau station ID...")
             response = requests.get(full_url, headers=headers)
+            if response.status_code == 200:
+                update_api_call_tracker(full_url)
             response.raise_for_status()
             response_json = response.json()
             stations = response_json["stations"]
@@ -88,6 +97,29 @@ def get_letourneau_station_id():
     print("Exceeded maximum retry attempts. Failed to fetch LeTourneau station ID.")
     return None
 
+
+def update_api_call_tracker(url):
+    # Parse the URL and rebuild it without the 'api-key' parameter
+    parsed_url = urlparse(url)
+    query_params = dict(parse_qsl(parsed_url.query))
+    query_params.pop('api-key', None)  # Remove the api-key parameter
+    cleaned_url = urlunparse(parsed_url._replace(query=urlencode(query_params)))
+
+    current_time = time.time()
+    one_hour_ago = current_time - 3600
+
+    # Remove timestamps older than one hour
+    while api_call_timestamps and api_call_timestamps[0] < one_hour_ago:
+        api_call_timestamps.popleft()
+
+    # Add the current timestamp
+    api_call_timestamps.append(current_time)
+
+    # Print the current status along with the cleaned URL
+    calls_in_last_hour = len(api_call_timestamps)
+    print(f"API call to {cleaned_url} at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(current_time))}. \n    {calls_in_last_hour}/1000 API calls in the past hour")
+
+
 def fetch_current_weather():
     global current_weather_data
     station_id = get_letourneau_station_id()
@@ -100,6 +132,8 @@ def fetch_current_weather():
 
     try:
         response = requests.get(full_url, headers=headers)
+        if response.status_code == 200:
+            update_api_call_tracker(full_url)
         response.raise_for_status()
 
         # Extract the sensors data
@@ -134,6 +168,7 @@ def fetch_current_weather():
     except Exception as e:
         print(f"An error occurred: {e}")
 
+
 @app.route('/current', methods=['GET'])
 def get_current():
     # Get the client IP address from the X-Forwarded-For header since I'm using a reverse-proxy.
@@ -142,6 +177,7 @@ def get_current():
     if current_weather_data is None:
         return jsonify({"error": "Weather data not available"}), 503
     return jsonify(current_weather_data), 200
+
 
 @app.route('/clear_database', methods=['GET'])
 def clear_database():
@@ -181,16 +217,19 @@ def get_missing_time_ranges(station_id, start_timestamp, end_timestamp):
     
     return missing_ranges
 
+
 def fetch_historic_data(station_id, start_timestamp, end_timestamp):
     full_url = f"{API_URL}historic/{station_id}?api-key={API_KEY}&start-timestamp={start_timestamp}&end-timestamp={end_timestamp}"
     headers = {'x-api-secret': API_SECRET}
     
     response = requests.get(full_url, headers=headers)
     if response.status_code == 200:
+        update_api_call_tracker(full_url)
         return response.json().get("sensors", [])
     else:
         return None
     
+
 def fetch_historic_data_for_range(station_id, start_timestamp, end_timestamp):
     station_id = get_letourneau_station_id()
     if not station_id:
@@ -204,7 +243,6 @@ def fetch_historic_data_for_range(station_id, start_timestamp, end_timestamp):
     
     while current_start < end_timestamp:
         current_end = min(current_start + one_day_in_seconds, end_timestamp)
-        print("fetching datas!")
         # Fetch and accumulate data for the current 24-hour block
         sensor_data_list = fetch_historic_data(station_id, current_start, current_end)
         
@@ -214,6 +252,7 @@ def fetch_historic_data_for_range(station_id, start_timestamp, end_timestamp):
         current_start = current_end
     
     return all_sensor_data
+
 
 @app.route('/historic', methods=['GET'])
 @cache.cached(timeout=300)
@@ -252,14 +291,12 @@ def get_historic():
         if end - start > one_day_in_seconds:
             current_start = start
             while current_start < end:
-                print("multi-entry")
                 current_end = min(current_start + one_day_in_seconds, end)
                 fetched_data = fetch_historic_data(station_id, current_start, current_end)
                 if fetched_data:
                     all_sensor_data.extend(fetched_data)
                 current_start = current_end
         else:
-            print("single entry")
             fetched_data = fetch_historic_data(station_id, start, end)
             if fetched_data:
                 all_sensor_data.extend(fetched_data)
@@ -297,19 +334,23 @@ def get_historic():
         "data": response_data
     }), 200
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
+
 # Background task to fetch weather data every 5 minutes plus 30 seconds
 @scheduler.task('cron', id='fetch_weather', minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
 def scheduled_fetch_weather():
     fetch_current_weather()
+
 
 if __name__ == '__main__':
     fetch_current_weather()  # Initial fetch
