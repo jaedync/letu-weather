@@ -4,9 +4,9 @@
 ![example screenshot](/images/Screenshot2024-01-21.png)
 
 ## Description
-The LETU Civil Weather Dashboard is a web application designed to display real-time and historic weather data. Developed with Flask for the backend and JavaScript for the frontend, it offers various visualizations for weather metrics such as temperature, humidity, wind speed, and more. Data is fetched from the WeatherLink API, and cached to void rate-limiting issues. This allows an arbitrary number of clients to use our new keyless API without issue.
+The *Flow Civil Engineering Senior Design* team has a high quality Davis Instruments weather station on *LeTourneau's* campus. The *FENNEC 2023/24 Senior Design* team needed a convenient way to retrieve and monitor historical and live weather data. This was the solution.
 
-This was developed for use in the Flight Emulation using Neural Networks for Event Characterization (FENNEC) 2023 Senior Design Project.
+The LETU Civil Weather Dashboard is a web application designed to display real-time and historic weather data. Developed with Flask for the backend and JavaScript for the frontend, it offers various visualizations for weather metrics such as temperature, humidity, wind speed, and more. Data is fetched from the WeatherLink API, and cached to void rate-limiting issues. This allows an arbitrary number of clients to use our new keyless API without issue.
 
 ## Features
 - Real-time weather data display
